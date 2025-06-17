@@ -52,8 +52,8 @@ En todos los casos, el código generado fue revisado, adaptado y probado manualm
 
 ```bash
 # Clonar el repositorio
-git clone <repositorio>
-cd ecommerce
+git clone https://github.com/C1ZC/Prueba-Tecnica-Camilo-Zavala-OQO.git
+cd Prueba-Tecnica-Camilo-Zavala-OQO
 
 # Instalar dependencias
 composer install
@@ -69,4 +69,3 @@ php artisan migrate:fresh --seed
 # Ejecutar el servidor de desarrollo
 php artisan serve
 composer run dev
-
