@@ -2,6 +2,9 @@
 
 Este proyecto implementa una aplicación e-commerce con un listado de productos filtrable y ordenable, desarrollada como parte de una prueba técnica para OQO.
 
+## Video demostrativo
+[![Ver video demostrativo](https://img.youtube.com/vi/PMQzWD6i9LA/0.jpg)](https://youtu.be/PMQzWD6i9LA)
+
 ## Tecnologías Utilizadas
 
 - **Backend**: Laravel 12
@@ -38,6 +41,7 @@ Se utilizó GitHub Copilot durante el desarrollo para:
 - Optimización del diseño con Tailwind CSS
 - Generación de datos de prueba (seeders)
 - Depuración y resolución de errores en la configuración de rutas API
+- documentación y comentarios en el código.
 
 En todos los casos, el código generado fue revisado, adaptado y probado manualmente para asegurar su correcto funcionamiento.
 

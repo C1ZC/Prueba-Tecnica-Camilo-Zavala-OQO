@@ -2,7 +2,7 @@
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header con controles de filtro y búsqueda -->
     <div class="flex flex-wrap gap-4 mb-6 items-center justify-between">
-      <!-- Búsqueda -->
+      <!-- Búsqueda: Campo para filtrar productos por nombre -->
       <div class="relative w-full md:w-auto">
         <input 
           type="text" 
@@ -13,7 +13,7 @@
         />
       </div>
       
-      <!-- Filtro por categoría -->
+      <!-- Filtro por categoría: Desplegable para filtrar productos por categoría -->
       <div class="w-full md:w-auto">
         <select 
           v-model="selectedCategory"
@@ -30,7 +30,7 @@
         </select>
       </div>
       
-      <!-- Controles de ordenamiento -->
+      <!-- Controles de ordenamiento: Permiten ordenar por diferentes campos y dirección -->
       <div class="flex items-center gap-2 w-full md:w-auto">
         <select 
           v-model="sort"
@@ -49,18 +49,19 @@
       </div>
     </div>
 
-    <!-- Mensaje de error -->
+    <!-- Mensaje de error: Se muestra cuando hay problemas al cargar los datos -->
     <div v-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded dark:bg-red-900 dark:text-red-200">
       {{ error }}
     </div>
 
-    <!-- Estado de carga -->
+    <!-- Estado de carga: Indicador visual mientras se cargan los datos -->
     <div v-if="loading" class="flex justify-center items-center py-12">
       <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
     </div>
 
-    <!-- Grid de productos -->
+    <!-- Grid de productos: Muestra los productos en un layout responsivo -->
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <!-- Tarjeta de producto individual -->
       <div 
         v-for="product in products" 
         :key="product.id" 
@@ -79,7 +80,7 @@
         </div>
       </div>
       
-      <!-- Mensaje si no hay productos -->
+      <!-- Mensaje cuando no hay productos que mostrar -->
       <div 
         v-if="products.length === 0 && !loading" 
         class="col-span-full text-center py-12 text-gray-500 dark:text-gray-400"
@@ -88,7 +89,7 @@
       </div>
     </div>
 
-    <!-- Paginación -->
+    <!-- Controles de paginación: Permiten navegar entre páginas de resultados -->
     <div 
       v-if="meta && meta.total > 0" 
       class="flex justify-center items-center gap-4 mt-8"
@@ -121,41 +122,53 @@ import { ref, watch, onMounted } from 'vue';
 import axios from 'axios';
 import { debounce } from 'lodash';
 
-// Interfaces/Types
+/**
+ * Definición de tipos e interfaces
+ */
+
+// Interfaz para el modelo de Categoría
 interface Category {
-  id: number;
-  name: string;
-  slug: string;
+  id: number;         // Identificador único de la categoría
+  name: string;       // Nombre mostrado de la categoría
+  slug: string;       // Slug para URLs amigables
 }
 
+// Interfaz para el modelo de Producto
 interface Product {
-  id: number;
-  name: string;
-  description: string | null;
-  price: string;
-  stock: number;
-  category: Category;
+  id: number;                    // Identificador único del producto
+  name: string;                  // Nombre del producto
+  description: string | null;    // Descripción del producto (puede ser nula)
+  price: string;                 // Precio (como string para preservar decimales)
+  stock: number;                 // Cantidad disponible en inventario
+  category: Category;            // Categoría a la que pertenece el producto
 }
 
+// Interfaz para la información de paginación
 interface Meta {
-  current_page: number;
-  total: number;
-  per_page: number;
+  current_page: number;    // Página actual
+  total: number;           // Número total de productos
+  per_page: number;        // Cantidad de productos por página
 }
 
-// Estado reactivo
-const products = ref<Product[]>([]);
-const categories = ref<Category[]>([]);
-const loading = ref<boolean>(false);
-const error = ref<string | null>(null);
-const search = ref<string>('');
-const selectedCategory = ref<number | null>(null);
-const sort = ref<string>('created_at');
-const direction = ref<'asc' | 'desc'>('desc');
-const page = ref<number>(1);
-const meta = ref<Meta | null>(null);
+/**
+ * Estado reactivo del componente
+ */
+const products = ref<Product[]>([]);                   // Lista de productos
+const categories = ref<Category[]>([]);                // Lista de categorías disponibles
+const loading = ref<boolean>(false);                   // Indicador de carga
+const error = ref<string | null>(null);                // Mensaje de error (si existe)
+const search = ref<string>('');                        // Término de búsqueda
+const selectedCategory = ref<number | null>(null);     // Categoría seleccionada para filtrar
+const sort = ref<string>('created_at');                // Campo por el que ordenar
+const direction = ref<'asc' | 'desc'>('desc');         // Dirección del ordenamiento
+const page = ref<number>(1);                           // Página actual
+const meta = ref<Meta | null>(null);                   // Información de paginación
 
-// Función para formatear precio en formato chileno
+/**
+ * Formatea un precio al formato de moneda chilena (CLP)
+ * @param precio - El precio a formatear (string o número)
+ * @returns String formateado con el precio en formato $X.XXX
+ */
 const formatPrecioChileno = (precio: string | number): string => {
   // Convertir a número si es string
   const precioNumero = typeof precio === 'string' ? parseFloat(precio) : precio;
@@ -164,17 +177,25 @@ const formatPrecioChileno = (precio: string | number): string => {
   return '$' + Math.round(precioNumero).toLocaleString('es-CL');
 };
 
-// Método para alternar la dirección de ordenamiento
+/**
+ * Alterna la dirección de ordenamiento entre ascendente y descendente
+ */
 const toggleDirection = () => {
   direction.value = direction.value === 'asc' ? 'desc' : 'asc';
 };
 
-// Debounce para la búsqueda
+/**
+ * Función con debounce para manejar la búsqueda de productos
+ * Espera 300ms después de que el usuario deja de escribir para realizar la búsqueda
+ * y reinicia la paginación al buscar
+ */
 const debouncedSearch = debounce(() => {
   page.value = 1; // Resetear a primera página en búsqueda
 }, 300);
 
-// Cargar categorías
+/**
+ * Obtiene la lista de categorías desde la API
+ */
 const fetchCategories = async () => {
   try {
     const res = await axios.get('/api/categories');
@@ -185,19 +206,27 @@ const fetchCategories = async () => {
   }
 };
 
-// Obtener productos con filtros, orden y paginación
+/**
+ * Obtiene la lista de productos desde la API aplicando
+ * los filtros, ordenamiento y paginación actuales
+ */
 const fetchProducts = async () => {
   loading.value = true;
   error.value = null;
   try {
+    // Construir parámetros de consulta
     const params = {
-      search: search.value || undefined,
-      category: selectedCategory.value || undefined,
-      sort: sort.value,
-      direction: direction.value,
-      page: page.value,
+      search: search.value || undefined,       // Término de búsqueda
+      category: selectedCategory.value || undefined, // ID de categoría seleccionada
+      sort: sort.value,                        // Campo de ordenamiento
+      direction: direction.value,              // Dirección del ordenamiento
+      page: page.value,                        // Número de página
     };
+    
+    // Realizar petición a la API
     const res = await axios.get('/api/products', { params });
+    
+    // Actualizar estado con los datos recibidos
     products.value = res.data.data;
     meta.value = res.data.meta;
   } catch (e: any) {
@@ -208,10 +237,15 @@ const fetchProducts = async () => {
   }
 };
 
-// Actualizar productos al cambiar filtros, orden o página
+/**
+ * Observador que activa la carga de productos cuando cambia
+ * cualquiera de los parámetros de filtrado, ordenamiento o paginación
+ */
 watch([search, selectedCategory, sort, direction, page], fetchProducts);
 
-// Inicializar datos al montar el componente
+/**
+ * Inicialización del componente: carga categorías y productos
+ */
 onMounted(() => {
   fetchCategories();
   fetchProducts();
